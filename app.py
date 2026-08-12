@@ -1,6 +1,5 @@
 """
-AI+OPC 异常检测 Web 界面
-基于 Streamlit 构建，展示数据采集和 AI 检测结果
+AI+OPC Anomaly Detection Web Interface
 """
 
 import streamlit as st
@@ -8,69 +7,34 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import glob
-import time
 from datetime import datetime
 from sklearn.ensemble import IsolationForest
 from sklearn.preprocessing import StandardScaler
 
-# ===== 解决 matplotlib 中文乱码（终极版） =====
-import os
-import matplotlib
-import matplotlib.font_manager as fm
-
-# 你的字体文件名
-font_path = "simhei.ttf"
-
-if os.path.exists(font_path):
-    # 1. 注册字体
-    fm.fontManager.addfont(font_path)
-    # 2. 获取字体名称
-    prop = fm.FontProperties(fname=font_path)
-    font_name = prop.get_name()
-    
-    # 3. 【关键】同时设置所有可能的 rcParams
-    matplotlib.rcParams['font.family'] = font_name
-    matplotlib.rcParams['font.sans-serif'] = [font_name]
-    matplotlib.rcParams['axes.unicode_minus'] = False
-    
-    # 4. 【额外】清除字体缓存，强制重新加载
-    fm._load_fontmanager(try_read_cache=False)
-else:
-    # 备选方案
-    matplotlib.rcParams['font.family'] = 'sans-serif'
-    matplotlib.rcParams['font.sans-serif'] = ['DejaVu Sans', 'Arial Unicode MS']
-    matplotlib.rcParams['axes.unicode_minus'] = False
-# ===== 页面配置 =====
+# ===== Page Config =====
 st.set_page_config(
-    page_title="AI+OPC 设备异常检测系统",
+    page_title="AI+OPC Anomaly Detection",
     page_icon="🏭",
     layout="wide"
 )
 
-# ... 后面的代码保持不变 ...
+# ===== Title =====
+st.title("🏭 AI+OPC Smart Equipment Anomaly Detection System")
+st.markdown("OPC UA Data Collection + Isolation Forest Algorithm")
 
-# ===== 标题 =====
-st.title("🏭 AI+OPC 智能设备异常检测系统")
-st.markdown("基于 OPC UA 数据采集 + 孤立森林异常检测算法")
-
-# ===== 侧边栏 =====
+# ===== Sidebar =====
 with st.sidebar:
-    st.header("⚙️ 系统控制")
-    
-    # 读取数据按钮
-    if st.button("🔄 加载最新数据"):
+    st.header("⚙️ Controls")
+    if st.button("🔄 Load Latest Data"):
         st.session_state.loaded = True
         st.rerun()
-    
     st.divider()
-    st.caption("📌 数据来源: Prosys OPC UA Simulation Server")
-    st.caption(f"⏱️ 更新时间: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+    st.caption("📌 Data Source: Prosys OPC UA Simulation Server")
+    st.caption(f"⏱️ Updated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
 
-# ===== 主区域 =====
-# 定义特征列
+# ===== Main Area =====
 FEATURE_COLS = ["Counter", "Random", "Sawtooth", "Sinusoid", "Square", "Triangle"]
 
-# 读取最新的 CSV 文件
 def load_latest_data():
     files = glob.glob("opcua_data_*.csv")
     if not files:
@@ -79,96 +43,83 @@ def load_latest_data():
     df = pd.read_csv(latest)
     return df
 
-# 运行异常检测
 def run_anomaly_detection(df):
     X = df[FEATURE_COLS].copy()
     X = X.replace("ERROR", np.nan).dropna()
-    
     if len(X) < 5:
         return df, None, None
-    
     scaler = StandardScaler()
     X_scaled = scaler.fit_transform(X)
-    
     model = IsolationForest(contamination=0.1, random_state=42)
     predictions = model.fit_predict(X_scaled)
-    
-    # 标记结果
     df_result = df.iloc[X.index].copy()
     df_result["Anomaly"] = predictions
-    df_result["状态"] = df_result["Anomaly"].apply(lambda x: "⚠️ 异常" if x == -1 else "✅ 正常")
-    
+    df_result["Status"] = df_result["Anomaly"].apply(lambda x: "⚠️ Anomaly" if x == -1 else "✅ Normal")
     return df_result, X_scaled, predictions
 
-# ===== 加载数据 =====
+# ===== Load Data =====
 df = load_latest_data()
 
 if df is None:
-    st.warning("⚠️ 未找到数据文件，请先运行 collect_data.py 采集数据")
+    st.warning("⚠️ No data file found. Please run collect_data.py first.")
     st.stop()
 
-# 运行检测
 df_result, X_scaled, predictions = run_anomaly_detection(df)
 
 if df_result is None:
-    st.warning("⚠️ 数据量不足，请采集更多数据")
+    st.warning("⚠️ Insufficient data. Please collect more samples.")
     st.stop()
 
-# ===== 统计指标 =====
-normal_count = (df_result["状态"] == "✅ 正常").sum()
-anomaly_count = (df_result["状态"] == "⚠️ 异常").sum()
+# ===== Metrics =====
+normal_count = (df_result["Status"] == "✅ Normal").sum()
+anomaly_count = (df_result["Status"] == "⚠️ Anomaly").sum()
 total = len(df_result)
 
 col1, col2, col3, col4 = st.columns(4)
-col1.metric("📊 总数据量", f"{total} 条")
-col2.metric("✅ 正常", f"{normal_count} 条", delta=f"{(normal_count/total*100):.1f}%")
-col3.metric("⚠️ 异常", f"{anomaly_count} 条", delta=f"{(anomaly_count/total*100):.1f}%", delta_color="inverse")
-col4.metric("📈 异常率", f"{(anomaly_count/total*100):.1f}%")
+col1.metric("📊 Total Samples", f"{total}")
+col2.metric("✅ Normal", f"{normal_count}", delta=f"{(normal_count/total*100):.1f}%")
+col3.metric("⚠️ Anomaly", f"{anomaly_count}", delta=f"{(anomaly_count/total*100):.1f}%", delta_color="inverse")
+col4.metric("📈 Anomaly Rate", f"{(anomaly_count/total*100):.1f}%")
 
 st.divider()
 
-# ===== 可视化图表 =====
-st.subheader("📊 异常检测可视化")
+# ===== Visualization =====
+st.subheader("📊 Anomaly Detection Visualization")
 
 if X_scaled is not None and predictions is not None:
     fig, axes = plt.subplots(2, 3, figsize=(12, 6))
     axes = axes.flatten()
-    
     for i, col in enumerate(FEATURE_COLS):
         ax = axes[i]
         colors = ['red' if p == -1 else 'blue' for p in predictions]
         ax.scatter(range(len(X_scaled)), X_scaled[:, i], c=colors, alpha=0.7, s=30)
         ax.set_title(f"{col}", fontsize=10)
-        ax.set_xlabel("样本序号")
-        ax.set_ylabel("标准化值")
+        ax.set_xlabel("Sample Index")
+        ax.set_ylabel("Normalized Value")
         ax.grid(True, alpha=0.3)
-    
-    # 用最后一个子图显示图例
     axes[5].axis('off')
-    axes[5].scatter([], [], c='blue', label='正常', s=50)
-    axes[5].scatter([], [], c='red', label='异常', s=50)
+    axes[5].scatter([], [], c='blue', label='Normal', s=50)
+    axes[5].scatter([], [], c='red', label='Anomaly', s=50)
     axes[5].legend(loc='center', fontsize=12)
-    
     plt.tight_layout()
     st.pyplot(fig)
 
 st.divider()
 
-# ===== 数据表格 =====
-st.subheader("📋 检测结果明细")
+# ===== Data Table =====
+st.subheader("📋 Detection Results")
 
-# 选择显示的列
-display_cols = ["Timestamp"] + FEATURE_COLS + ["状态"]
+display_cols = ["Timestamp"] + FEATURE_COLS + ["Status"]
 st.dataframe(
     df_result[display_cols].style.map(
-        lambda x: 'background-color: #ffcccc' if x == '⚠️ 异常' else '',
-        subset=['状态']
+        lambda x: 'background-color: #ffcccc' if x == '⚠️ Anomaly' else '',
+        subset=['Status']
     ),
     use_container_width=True,
     height=300
 )
 
-# ===== 底部 =====
+# ===== Footer =====
 st.divider()
-st.caption("🔧 技术栈: Python | OPC UA | 孤立森林 | Streamlit")
-st.caption("📌 异常点已标红，支持导出数据和图表")
+st.caption("🔧 Tech Stack: Python | OPC UA | Isolation Forest | Streamlit")
+st.caption("📌 Anomalies marked in red")
