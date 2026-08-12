@@ -137,7 +137,7 @@ st.subheader("📋 检测结果明细")
 # 选择显示的列
 display_cols = ["Timestamp"] + FEATURE_COLS + ["状态"]
 st.dataframe(
-    df_result[display_cols].style.applymap(
+    df_result[display_cols].style.map(
         lambda x: 'background-color: #ffcccc' if x == '⚠️ 异常' else '',
         subset=['状态']
     ),
