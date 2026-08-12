@@ -13,27 +13,33 @@ from datetime import datetime
 from sklearn.ensemble import IsolationForest
 from sklearn.preprocessing import StandardScaler
 
-# ===== 解决 matplotlib 中文乱码 =====
+# ===== 解决 matplotlib 中文乱码（终极版） =====
 import os
 import matplotlib
 import matplotlib.font_manager as fm
 
-# 你的字体文件名（全小写，与下载的文件名完全一致）
+# 你的字体文件名
 font_path = "simhei.ttf"
 
 if os.path.exists(font_path):
-    # 1. 直接注册字体文件到 Matplotlib
+    # 1. 注册字体
     fm.fontManager.addfont(font_path)
-    # 2. 获取字体属性
+    # 2. 获取字体名称
     prop = fm.FontProperties(fname=font_path)
-    # 3. 强制设置 Matplotlib 使用该字体
-    matplotlib.rcParams['font.family'] = prop.get_name()
+    font_name = prop.get_name()
+    
+    # 3. 【关键】同时设置所有可能的 rcParams
+    matplotlib.rcParams['font.family'] = font_name
+    matplotlib.rcParams['font.sans-serif'] = [font_name]
+    matplotlib.rcParams['axes.unicode_minus'] = False
+    
+    # 4. 【额外】清除字体缓存，强制重新加载
+    fm._load_fontmanager(try_read_cache=False)
 else:
     # 备选方案
     matplotlib.rcParams['font.family'] = 'sans-serif'
     matplotlib.rcParams['font.sans-serif'] = ['DejaVu Sans', 'Arial Unicode MS']
-
-plt.rcParams['axes.unicode_minus'] = False
+    matplotlib.rcParams['axes.unicode_minus'] = False
 # ===== 页面配置 =====
 st.set_page_config(
     page_title="AI+OPC 设备异常检测系统",
