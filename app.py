@@ -14,8 +14,20 @@ from sklearn.ensemble import IsolationForest
 from sklearn.preprocessing import StandardScaler
 
 # ===== 解决 matplotlib 中文乱码 =====
-plt.rcParams['font.sans-serif'] = ['Microsoft YaHei']  # 指定默认字体为微软雅黑
-plt.rcParams['axes.unicode_minus'] = False              # 解决负号 '-' 显示为方块的问题
+import os
+import matplotlib.font_manager as fm
+
+# 检查项目文件夹里是否有 SimHei.ttf 字体文件
+font_path = "simhei.ttf"
+if os.path.exists(font_path):
+    # 如果存在，直接加载这个字体文件
+    prop = fm.FontProperties(fname=font_path)
+    plt.rcParams['font.sans-serif'] = [prop.get_name()]
+else:
+    # 如果不存在，使用备选方案
+    plt.rcParams['font.sans-serif'] = ['DejaVu Sans', 'Arial Unicode MS', 'sans-serif']
+
+plt.rcParams['axes.unicode_minus'] = False
 
 # ===== 页面配置 =====
 st.set_page_config(
