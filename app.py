@@ -15,20 +15,25 @@ from sklearn.preprocessing import StandardScaler
 
 # ===== 解决 matplotlib 中文乱码 =====
 import os
+import matplotlib
 import matplotlib.font_manager as fm
 
-# 检查项目文件夹里是否有 SimHei.ttf 字体文件
+# 你的字体文件名（全小写，与下载的文件名完全一致）
 font_path = "simhei.ttf"
+
 if os.path.exists(font_path):
-    # 如果存在，直接加载这个字体文件
+    # 1. 直接注册字体文件到 Matplotlib
+    fm.fontManager.addfont(font_path)
+    # 2. 获取字体属性
     prop = fm.FontProperties(fname=font_path)
-    plt.rcParams['font.sans-serif'] = [prop.get_name()]
+    # 3. 强制设置 Matplotlib 使用该字体
+    matplotlib.rcParams['font.family'] = prop.get_name()
 else:
-    # 如果不存在，使用备选方案
-    plt.rcParams['font.sans-serif'] = ['DejaVu Sans', 'Arial Unicode MS', 'sans-serif']
+    # 备选方案
+    matplotlib.rcParams['font.family'] = 'sans-serif'
+    matplotlib.rcParams['font.sans-serif'] = ['DejaVu Sans', 'Arial Unicode MS']
 
 plt.rcParams['axes.unicode_minus'] = False
-
 # ===== 页面配置 =====
 st.set_page_config(
     page_title="AI+OPC 设备异常检测系统",
